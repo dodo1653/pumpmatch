@@ -1,0 +1,184 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>pumpmatch launch film</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #0a0a0c; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased; color: #f4f4f6; }
+  #bg { position: absolute; inset: 0; background: radial-gradient(1100px 900px at 66% 52%, #17171b 0%, #0d0d10 55%, #08080a 100%); }
+  #grain { position: absolute; inset: 0; opacity: .06; mix-blend-mode: overlay; }
+  /* the phone */
+  #rig { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; perspective: 2600px; }
+  #phone { position: absolute; width: 430px; height: 884px; left: 1190px; top: 98px; margin-left: -215px; border-radius: 68px; transform-origin: 50% 50%;
+    background: linear-gradient(145deg, #3a3a3e, #1b1b1e 30%, #2a2a2e 60%, #141416);
+    box-shadow: 0 60px 120px rgba(0,0,0,.55), 0 20px 40px rgba(0,0,0,.4), inset 0 0 0 1.5px rgba(255,255,255,.14); }
+  #phone .glass { position: absolute; inset: 13px; border-radius: 56px; overflow: hidden; background: #000; }
+  #phone iframe { position: absolute; left: 0; top: 0; width: 404px; height: 858px; border: 0; display: block; }
+  #phone .island { position: absolute; left: 50%; top: 24px; width: 122px; height: 35px; margin-left: -61px; border-radius: 20px; background: #000; z-index: 3; }
+  #phone .sheen { position: absolute; inset: 13px; border-radius: 56px; pointer-events: none; z-index: 4; background: linear-gradient(115deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,0) 32%); }
+  #phone .btnL, #phone .btnR { position: absolute; width: 4px; border-radius: 2px; background: #2b2b2f; }
+  #touch { position: absolute; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%; background: rgba(255,255,255,.28); border: 2px solid rgba(255,255,255,.55); opacity: 0; z-index: 5; pointer-events: none; }
+  /* words */
+  .cap { position: absolute; left: 170px; width: 640px; }
+  .cap .h { font: 800 64px/1.04 'Plus Jakarta Sans'; letter-spacing: -.045em; }
+  .cap .s { margin-top: 18px; font: 500 28px/1.35 'Plus Jakarta Sans'; color: #9b9ba5; letter-spacing: -.01em; }
+  .cap .h em { font-style: normal; color: #3fe08e; }
+  #end { position: absolute; left: 170px; top: 0; height: 1080px; display: flex; flex-direction: column; justify-content: center; opacity: 0; }
+  #end .lg { display: flex; align-items: center; gap: 22px; font: 800 92px 'Plus Jakarta Sans'; letter-spacing: -.05em; }
+  #end .lg img { width: 104px; height: 104px; border-radius: 26px; }
+  #end .s { margin-top: 22px; font: 500 32px 'Plus Jakarta Sans'; color: #9b9ba5; }
+  #end .u { margin-top: 44px; font: 500 22px 'JetBrains Mono'; color: #6b6b75; }
+</style>
+</head>
+<body>
+<div id="bg"></div><canvas id="grain" width="960" height="540"></canvas>
+<div id="caps"></div>
+<div id="end"><div class="lg"><img src="../site/brand/icon.png">pumpmatch</div><div class="s">Swipe the trenches.</div><div class="u" id="endU"></div></div>
+<div id="rig"><div id="phone"><div class="btnL" style="left:-4px;top:200px;height:70px"></div><div class="btnL" style="left:-4px;top:290px;height:70px"></div><div class="btnR" style="right:-4px;top:250px;height:110px"></div>
+  <div class="glass"><iframe id="app" scrolling="no"></iframe></div><div class="island"></div><div class="sheen"></div><div id="touch"></div></div></div>
+<script>window.READY = false</script>
+<script type="module">
+const $ = (id) => document.getElementById(id)
+const Q = new URLSearchParams(location.search)
+$('endU').textContent = Q.get('site') || 'pumpmatch.vercel.app'
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x))
+const E3 = (x) => 1 - Math.pow(1 - clamp(x), 3)
+const IO = (x) => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2 }
+const lerp = (a, b, k) => a + (b - a) * k
+const ramp = (t, a, b, f = .45) => clamp((t - a) / f) * clamp((b - t) / f)
+
+// film grain (static noise, redrawn every frame so it lives)
+const gctx = $('grain').getContext('2d'), gimg = gctx.createImageData(960, 540)
+let seed = 1; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
+const grain = (t) => { seed = 1 + Math.floor(t * 30); for (let i = 0; i < gimg.data.length; i += 4) { const v = rnd() * 255; gimg.data[i] = gimg.data[i + 1] = gimg.data[i + 2] = v; gimg.data[i + 3] = 255 } gctx.putImageData(gimg, 0, 0) }
+
+// ---------------------------------------------------------------- the app, with a fixed deck of real coins
+const film = await (await fetch('film/film.json')).json()
+const fr = $('app'); fr.src = '../site/index.html?film=1'
+await new Promise((r) => (fr.onload = r))
+const W = fr.contentWindow, D = fr.contentDocument
+for (let i = 0; i < 200 && !W.PM; i++) await new Promise((r) => setTimeout(r, 50))
+W.__filmCoins = film.coins; W.__filmDev = film.dev
+const BASE = Math.max(...film.coins.map((c) => c.at)) + 20000
+W.__filmNow = BASE
+W.PM.reset(); W.PM.setSol(film.sol)
+D.getElementById('empty').style.display = 'none'
+const cards = film.coins.map((c) => { const x = W.PM.makeCard(c); W.PM.loadDev(x); x.el.style.display = 'none'; return x })
+await Promise.all([...D.images].map((im) => (im.complete ? 0 : new Promise((r) => { im.onload = im.onerror = r }))))
+await new Promise((r) => setTimeout(r, 1200))   // the card images are CSS backgrounds: give them a moment
+
+// ---------------------------------------------------------------- the story: every swipe has a drag and a fling
+// i = card index; dir +1 ape / -1 pass; d0..d1 = finger drag, d1..f = the card flies
+const SW = [
+  { i: 0, dir: -1, d0: 6.7, d1: 7.45, f: 7.85 },
+  { i: 1, dir: -1, d0: 8.55, d1: 9.05, f: 9.4 },
+  { i: 2, dir: 1, d0: 10.6, d1: 11.35, f: 11.75 },
+  { i: 3, dir: -1, d0: 14.75, d1: 15.05, f: 15.3 },
+  { i: 4, dir: -1, d0: 15.45, d1: 15.75, f: 16.0 },
+  { i: 5, dir: -1, d0: 16.15, d1: 16.45, f: 16.7 },
+  { i: 6, dir: 1, d0: 17.1, d1: 17.65, f: 17.95 },
+]
+const INFO = { i: 0, tap: 3.0, open: 3.15, close: 5.9 }
+const MATCHES = [{ at: 11.8, i: 2, keep: 14.2 }, { at: 18.0, i: 6, keep: 19.6 }]
+const TAB = 20.1, END = 24.2
+window.DURATION = 28
+
+const CAPS = [
+  { a: .6, b: 2.9, h: 'Every new pump.fun launch.', s: 'One card at a time, live from the chain.' },
+  { a: 3.2, b: 6.3, h: 'See the dev<br>before you ape.', s: 'Their buys, their sells, and how their last coins ended.' },
+  { a: 6.5, b: 9.9, h: 'Dev sold? <em>Pass.</em>', s: 'Bundled launch? Pass. Every red flag is on the card.' },
+  { a: 10.2, b: 14.3, h: 'Right to <em>ape.</em>', s: 'Paper mode to practise, or your own wallet. You sign every trade.' },
+  { a: 14.5, b: 19.8, h: 'Swipe the trenches<br>in seconds.', s: 'Hundreds of launches an hour. Only the ones worth a look.' },
+  { a: 20.1, b: 24.0, h: 'Every match, tracked.', s: 'Live P&amp;L. Sell half or all in one tap.' },
+]
+
+// a card's transform at time t (null = not on screen)
+function cardState(i, t) {
+  const sw = SW.find((s) => s.i === i), prev = SW.filter((s) => s.i < i).pop()
+  const topFrom = prev ? prev.f - .35 : -1
+  if (sw && t >= sw.f + .05) return null
+  if (t < topFrom - .5) return { hidden: true }
+  // under the top card: scaled back, rising as the card above flies
+  if (prev && t < prev.d1) return { under: true, k: 0 }
+  if (prev && t < prev.f) return { under: true, k: E3((t - prev.d1) / (prev.f - prev.d1)) }
+  if (!sw || t < sw.d0) return { x: 0, y: 0, r: 0, ape: 0, pass: 0 }
+  if (t < sw.d1) { const k = IO((t - sw.d0) / (sw.d1 - sw.d0)), dx = sw.dir * 150 * k; return { x: dx, y: 8 * k, r: dx / 18, ape: clamp(dx / 90), pass: clamp(-dx / 90), touch: k } }
+  const k = clamp((t - sw.d1) / (sw.f - sw.d1)), kk = k * k, dx = sw.dir * (150 + 560 * kk)
+  return { x: dx, y: 8 + 60 * kk, r: dx / 18, ape: sw.dir > 0 ? 1 : 0, pass: sw.dir < 0 ? 1 : 0, o: 1 - k * .6 }
+}
+
+const done = new Set()
+const once = (k, fn) => { if (!done.has(k)) { done.add(k); fn() } }
+const touch = $('touch')
+function setTouch(x, y, o, s = 1) { touch.style.left = x + 'px'; touch.style.top = y + 'px'; touch.style.opacity = o; touch.style.transform = `scale(${s})` }
+
+window.renderFrame = (t) => {
+  grain(t)
+  W.__filmNow = BASE + t * 1000
+  // ---------------- the deck
+  let touchSet = false
+  cards.forEach((x, i) => {
+    const st = cardState(i, t), el = x.el
+    if (!st || st.hidden) { el.style.display = 'none'; return }
+    el.style.display = ''
+    if (st.under) { el.style.zIndex = 9; el.style.opacity = lerp(.7, 1, st.k); el.style.transform = `scale(${lerp(.94, 1, st.k)}) translateY(${lerp(14, 0, st.k)}px)`; el.querySelectorAll('.stamp').forEach((s) => (s.style.opacity = 0)); return }
+    el.style.zIndex = 10; el.style.opacity = st.o ?? 1
+    el.style.transform = `translate(${st.x}px, ${st.y}px) rotate(${st.r}deg)`
+    el.querySelector('.stamp.ape').style.opacity = st.ape; el.querySelector('.stamp.pass').style.opacity = st.pass
+    if (st.touch !== undefined && !touchSet) { setTouch(215 + st.x * .9, 470 + st.y, clamp(st.touch * 6) * .9); touchSet = true }
+  })
+  // ---------------- the info sheet on the first card
+  const sheet = D.getElementById('sheet'), scrim = D.getElementById('scrim')
+  if (t >= INFO.open && t < INFO.close + .6) {
+    once('info', () => W.PM.openInfo(cards[INFO.i]))
+    const k = E3((t - INFO.open) / .45) * (1 - E3((t - INFO.close) / .4))
+    sheet.classList.add('on'); scrim.classList.add('on')
+    sheet.style.transform = `translateY(${(1 - k) * 105}%)`; scrim.style.opacity = k
+  } else { sheet.style.transform = 'translateY(105%)'; scrim.style.opacity = 0; scrim.classList.remove('on') }
+  if (t >= INFO.tap - .25 && t < INFO.tap + .3) { const k = (t - INFO.tap + .25) / .55; setTouch(360, 128, Math.sin(k * Math.PI) * .9, 1 - .15 * Math.sin(k * Math.PI)); touchSet = true }
+  if (t >= INFO.close - .25 && t < INFO.close + .3) { const k = (t - INFO.close + .25) / .55; setTouch(215, 200, Math.sin(k * Math.PI) * .9); touchSet = true }
+  // ---------------- matches
+  const m = D.getElementById('match')
+  let mOn = false
+  for (const M of MATCHES) {
+    if (t >= M.at) once('ape' + M.i, () => W.PM.apeInto(film.coins[M.i]))
+    if (t >= M.at && t < M.keep + .4) {
+      mOn = true; m.classList.add('on')
+      const k = E3((t - M.at) / .35), out = E3((t - M.keep) / .35)
+      m.style.opacity = k * (1 - out)
+      const pk = clamp((t - M.at - .05) / .45), pop = pk < 1 ? 1 + 1.6 * Math.pow(pk - 1, 3) + .6 * Math.pow(pk - 1, 2) : 1
+      const tt = m.querySelector('.t'); if (tt) tt.style.transform = `scale(${.5 + .5 * pop})`
+      const pair = m.querySelectorAll('.pair div'); pair.forEach((d, j) => (d.style.transform = `rotate(${j ? 8 : -8}deg) translateX(${(j ? -14 : 14) + (1 - E3((t - M.at) / .5)) * (j ? 120 : -120)}px)`))
+      if (t > M.keep - .25 && t < M.keep + .3) { const kk = (t - M.keep + .25) / .55; setTouch(215, 600, Math.sin(kk * Math.PI) * .9); touchSet = true }
+    }
+  }
+  if (!mOn) { m.classList.remove('on'); m.style.opacity = '' }
+  // ---------------- the Matches tab
+  const tabBtn = D.querySelector('.nav button[data-v="vMatches"]')
+  if (t >= TAB) once('tab', () => W.PM.go('vMatches'))
+  if (t >= TAB - .3 && t < TAB + .3) { const k = (t - TAB + .3) / .6; const r = tabBtn.getBoundingClientRect(); setTouch(r.left + r.width / 2 + 13, r.top + 13 + 10, Math.sin(k * Math.PI) * .9); touchSet = true }
+  if (!touchSet) touch.style.opacity = 0
+  // ---------------- camera: the phone drifts, leans in on the sheet and the matches
+  const phone = $('phone')
+  const intro = E3((t - .1) / 1.1), outro = IO((t - END) / 1.4)
+  const lean = Math.max(ramp(t, 3.3, 5.9, .6), ramp(t, 11.8, 14.2, .5) * .8, ramp(t, 20.4, 23.6, .6) * .7)
+  const ry = lerp(-10, 6, IO(t / 24)) * (1 - outro), rx = lerp(4, 1, IO(t / 24)) * (1 - outro)
+  const s = (.92 + .08 * intro) * (1 + .1 * lean) * lerp(1, .9, outro)
+  const tx = lerp(0, 230, outro), ty = (1 - intro) * 60 + lean * 30
+  phone.style.transform = `translate(${tx}px, ${ty}px) rotateY(${ry}deg) rotateX(${rx}deg) scale(${s})`
+  phone.style.opacity = intro
+  // ---------------- words
+  $('caps').innerHTML = CAPS.map((c, k) => {
+    const o = ramp(t, c.a, c.b, .5); if (o <= 0) return ''
+    const rise = (1 - E3((t - c.a) / .6)) * 18
+    return `<div class="cap" style="top:${430}px;opacity:${o};transform:translateY(${rise - 60}px)"><div class="h">${c.h}</div><div class="s">${c.s}</div></div>`
+  }).join('')
+  // ---------------- the end: the phone moves aside, the name and one line, nothing else
+  $('end').style.opacity = E3((t - END - .4) / .9)
+  $('end').style.transform = `translateY(${(1 - E3((t - END - .4) / .9)) * 16}px)`
+}
+window.renderFrame(0); window.READY = true
+</script>
+</body>
+</html>

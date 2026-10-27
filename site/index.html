@@ -51,7 +51,7 @@
   /* views */
   .view { position: absolute; inset: 0; top: 0; display: none; flex-direction: column; }
   .view.on { display: flex; }
-  #views { position: relative; flex: 1; }
+  #views { position: relative; flex: 1; overflow: hidden; }
   /* the deck */
   #deck { position: relative; flex: 1; margin: 4px 14px 0; }
   .cardx { position: absolute; inset: 0; border-radius: 26px; overflow: hidden; background: var(--card); box-shadow: 0 18px 50px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06); touch-action: none; user-select: none; will-change: transform; }
@@ -155,6 +155,11 @@
   #toast { position: absolute; left: 16px; right: 16px; top: 12px; z-index: 40; padding: 12px 14px; border-radius: 14px; background: #1f1f24; box-shadow: 0 10px 30px rgba(0,0,0,.5); font-size: 13.5px; transform: translateY(-12px); opacity: 0; visibility: hidden; transition: transform .3s, opacity .3s, visibility .3s; }
   #toast.on { transform: none; opacity: 1; visibility: visible; }
   #toast.err { background: #3a1820; }
+  body.film *, body.film *::before, body.film *::after { transition: none !important; animation: none !important; }
+  body.film #stage { padding: 0; } body.film #pitch { display: none; } body.film #app { width: 100%; height: 100vh; border-radius: 0; box-shadow: none; }
+  body.film .top { padding-top: 58px; }
+  .sbar { display: none; } body.film .sbar { display: flex; position: absolute; top: 0; left: 0; right: 0; height: 50px; padding: 16px 30px 0 34px; justify-content: space-between; font: 700 16px 'Plus Jakarta Sans'; z-index: 50; pointer-events: none; }
+  .sbar svg { height: 13px; margin-left: 6px; }
 </style>
 </head>
 <body>
@@ -172,6 +177,7 @@
   </div>
 
   <div id="app">
+    <div class="sbar"><span>9:41</span><span><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="#fff"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="#fff"/><rect x="10" y="3" width="3" height="9" rx="1" fill="#fff"/><rect x="15" y="0" width="3" height="12" rx="1" fill="#fff"/></svg><svg viewBox="0 0 27 13"><rect x=".5" y=".5" width="22" height="12" rx="3.5" fill="none" stroke="#fff" opacity=".45"/><rect x="2" y="2" width="17" height="9" rx="2" fill="#fff"/><rect x="24" y="4.5" width="2" height="4" rx="1" fill="#fff" opacity=".45"/></svg></span></div>
     <div class="top">
       <div class="brand"><img src="brand/icon.png" alt="">pumpmatch</div>
       <div class="seg" id="mode"><button data-m="paper">Paper</button><button data-m="live">Live</button></div>
@@ -206,11 +212,13 @@
 import P from './project.config.js'
 const $ = (id) => document.getElementById(id)
 const Q = new URLSearchParams(location.search)
+const FILM = Q.get('film')            // promo only: a fixed deck, driven frame by frame by the promo page
+const NOW = () => (FILM ? window.__filmNow || Date.now() : Date.now())
 const RELAY = Q.get('relay')
 const api = (path, q = '') => (RELAY ? `${RELAY}/v1/${path}?${q}` : `/api/r?path=${path}&${q}`)
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 const usd = (v) => (v >= 1e6 ? '$' + (v / 1e6).toFixed(2) + 'M' : v >= 1e3 ? '$' + (v / 1e3).toFixed(1) + 'K' : '$' + v.toFixed(v < 10 ? 2 : 0))
-const ago = (t) => { const s = Math.max(0, Math.round((Date.now() - t) / 1000)); return s < 60 ? s + 's' : s < 3600 ? Math.round(s / 60) + 'm' : (s / 3600).toFixed(1) + 'h' }
+const ago = (t) => { const s = Math.max(0, Math.round((NOW() - t) / 1000)); return s < 60 ? s + 's' : s < 3600 ? Math.round(s / 60) + 'm' : (s / 3600).toFixed(1) + 'h' }
 const store = { get: (k, d) => { try { return JSON.parse(localStorage.getItem('pm_' + k)) ?? d } catch { return d } }, set: (k, v) => { try { localStorage.setItem('pm_' + k, JSON.stringify(v)) } catch {} } }
 if (P.mint) { $('caT').textContent = '$' + P.ticker; $('caV').textContent = P.mint.slice(0, 5) + '…' + P.mint.slice(-5); $('caBox').classList.add('on'); $('caCopy').onclick = () => { navigator.clipboard?.writeText(P.mint); $('caCopy').textContent = 'copied' } }
 
@@ -226,6 +234,7 @@ const toast = (msg, err) => { const t = $('toast'); t.textContent = msg; t.class
 const seen = new Set(store.get('seen', []).slice(-500)), queue = new Map(), devInfo = new Map()
 let cards = []   // [top, under]
 async function pull() {
+  if (FILM) return
   try {
     const j = await (await fetch(api('deck', 'n=80'), { cache: 'no-store' })).json()
     sol = j.sol || sol
@@ -279,7 +288,7 @@ function flagsOf(c, dv) {
   if (c.devSold) f.push(['r', 'DEV SOLD'])
   else if (c.devPct >= 8) f.push(['a', `DEV HOLDS ${c.devPct.toFixed(0)}%`])
   if (c.bundlePct >= 5) f.push(['a', `BUNDLED ${c.bundlePct.toFixed(0)}%`])
-  if (dv) { if (dv.grads > 0) f.push(['g', `DEV GRADUATED ${dv.grads}`]); if (dv.dead >= 3) f.push(['r', `DEV: ${dv.dead} DEAD COINS`]); else if (dv.count <= 1) f.push(['n', 'FIRST LAUNCH']) }
+  if (dv) { if (dv.grads > 0) f.push(['g', `DEV GRADUATED ${dv.grads}`]); if (dv.dead >= 3) f.push(['r', `DEV: ${dv.dead} DEAD COINS`]); else if (dv.count === 1) f.push(['n', 'FIRST LAUNCH']) }
   if (!c.x && !c.web && !c.tg) f.push(['n', 'NO SOCIALS'])
   if (c.flow5 >= 2) f.push(['g', `+${c.flow5.toFixed(1)} SOL IN 5M`])
   if (c.prog >= 60) f.push(['g', 'NEAR GRADUATION'])
@@ -296,6 +305,7 @@ function paintStats(x) {
   el.querySelector('.flags').innerHTML = flagsOf(c, devInfo.get(c.dev)).slice(0, 4).map(([k, t]) => `<span class="flag ${k}">${t}</span>`).join('')
 }
 async function loadDev(x) {
+  if (FILM) { devInfo.set(x.c.dev, (window.__filmDev || {})[x.c.dev] || null); return paintStats(x) }
   if (devInfo.has(x.c.dev)) return paintStats(x)
   devInfo.set(x.c.dev, null)
   try { const d = await (await fetch(api('dev', 'wallet=' + x.c.dev))).json(); if (!d.error) { devInfo.set(x.c.dev, d); for (const y of cards) if (y.c.dev === x.c.dev) paintStats(y) } } catch {}
@@ -404,6 +414,7 @@ document.querySelectorAll('#mode button').forEach((b) => (b.onclick = () => { S.
 
 // ---------------------------------------------------------------- matches (positions)
 async function priceOf(mint) {
+  if (FILM) { const c = (window.__filmCoins || []).find((x) => x.mint === mint); return c ? { vSol: c.vSol, vTok: c.vTok, price: c.price } : null }
   try { const r = await fetch(api('coin', 'mint=' + mint)); if (r.ok) { const c = await r.json(); return { vSol: c.vSol, vTok: c.vTok, price: c.price, done: c.done } } } catch {}
   try { const p = await (await fetch('https://api.dexscreener.com/tokens/v1/solana/' + mint)).json(); const best = (p || []).sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0]; if (best) return { price: +best.priceNative } } catch {}
   return null
@@ -487,7 +498,12 @@ function go(v) {
 document.querySelectorAll('.nav button').forEach((b) => (b.onclick = () => go(b.dataset.v)))
 setInterval(() => { if ($('vMatches').classList.contains('on')) paintMatches() }, 5000)
 
-paintMode(); countMatches(); pull(); setInterval(pull, 3000)
+paintMode(); countMatches()
+if (FILM) {
+  document.body.classList.add('film')
+  window.PM = { makeCard, paintStats, openInfo, showMatch, apeInto, go, loadDev, paintMatches, setSol: (v) => (sol = v), reset() { paper.sol = 10; paper.pos = {}; store.set('paper', paper); seen.clear(); S.mode = 'paper'; S.amt = 0.1; paintMode() } }
+  window.READY_APP = true
+} else { pull(); setInterval(pull, 3000) }
 </script>
 </body>
 </html>

@@ -2,3 +2,8 @@ node_modules
 .wrangler
 .dev.vars
 promo/out
+promo/film/cand
+promo/film/raw.json
+promo/film/cands.json
+promo/film/cands_sheet.jpg
+promo/film/grid.*
