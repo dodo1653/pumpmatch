@@ -34,7 +34,7 @@
 <body>
 <div id="bg"></div><canvas id="grain" width="960" height="540"></canvas>
 <div id="caps"></div>
-<div id="end"><div class="lg"><img src="../site/brand/icon.png">pumpmatch</div><div class="s">Swipe the trenches.</div><div class="u" id="endU"></div></div>
+<div id="end"><div class="lg"><img src="../brand/icon.png">pumpmatch</div><div class="s">Swipe the trenches.</div><div class="u" id="endU"></div></div>
 <div id="rig"><div id="phone"><div class="btnL" style="left:-4px;top:200px;height:70px"></div><div class="btnL" style="left:-4px;top:290px;height:70px"></div><div class="btnR" style="right:-4px;top:250px;height:110px"></div>
   <div class="glass"><iframe id="app" scrolling="no"></iframe></div><div class="island"></div><div class="sheen"></div><div id="touch"></div></div></div>
 <script>window.READY = false</script>
@@ -55,7 +55,7 @@ const grain = (t) => { seed = 1 + Math.floor(t * 30); for (let i = 0; i < gimg.d
 
 // ---------------------------------------------------------------- the app, with a fixed deck of real coins
 const film = await (await fetch('film/film.json')).json()
-const fr = $('app'); fr.src = '../site/index.html?film=1'
+const fr = $('app'); fr.src = '../index.html?film=1'
 await new Promise((r) => (fr.onload = r))
 const W = fr.contentWindow, D = fr.contentDocument
 for (let i = 0; i < 200 && !W.PM; i++) await new Promise((r) => setTimeout(r, 50))
