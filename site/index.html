@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#0b0b0d">
+<title>pumpmatch · swipe the trenches</title>
+<meta name="description" content="Every new pump.fun launch, one card at a time. Swipe right to ape, left to pass. Dev and bundle red flags on every card.">
+<meta property="og:title" content="pumpmatch">
+<meta property="og:description" content="Swipe the trenches. Right to ape, left to pass.">
+<meta property="og:image" content="brand/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="brand/favicon.png">
+<link rel="apple-touch-icon" href="brand/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #0b0b0d; --card: #151518; --line: rgba(255,255,255,.08); --ink: #f4f4f6; --dim: #a1a1aa; --faint: #63636d; --ape: #3fe08e; --pass: #ff4d6d; --amber: #ffbf47; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: #050506; color: var(--ink); font: 500 15px/1.4 'Plus Jakarta Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased; overscroll-behavior: none; }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  /* desktop: the app in a phone-sized column with the pitch beside it */
+  #stage { min-height: 100%; display: flex; align-items: center; justify-content: center; gap: 70px; padding: 24px;
+    background: radial-gradient(900px 600px at 70% 30%, rgba(63,224,142,.08), transparent 70%), radial-gradient(700px 500px at 20% 80%, rgba(255,77,109,.06), transparent 70%), #050506; }
+  #pitch { max-width: 420px; }
+  #pitch .lg { display: flex; align-items: center; gap: 14px; font: 800 30px 'Plus Jakarta Sans'; letter-spacing: -.03em; }
+  #pitch .lg img { width: 52px; height: 52px; border-radius: 14px; }
+  #pitch h1 { margin: 26px 0 14px; font: 800 52px/1.02 'Plus Jakarta Sans'; letter-spacing: -.045em; }
+  #pitch h1 em { font-style: normal; color: var(--ape); }
+  #pitch p { color: var(--dim); font-size: 17px; margin: 0 0 22px; }
+  #pitch .pts { display: grid; gap: 12px; color: var(--dim); font-size: 15px; }
+  #pitch .pts div { display: flex; gap: 12px; align-items: flex-start; }
+  #pitch .pts b { color: var(--ink); font-weight: 700; }
+  #pitch .pts i { flex: none; width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; background: rgba(63,224,142,.12); color: var(--ape); font: 800 12px 'JetBrains Mono'; font-style: normal; }
+  #pitch .ca { margin-top: 26px; display: none; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; font: 500 13px 'JetBrains Mono'; }
+  #pitch .ca.on { display: inline-flex; } #pitch .ca b { color: var(--ape); }
+  #app { position: relative; width: 420px; height: min(860px, calc(100vh - 48px)); border-radius: 38px; overflow: hidden; background: var(--bg); box-shadow: 0 50px 140px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.08), inset 0 0 0 1px rgba(255,255,255,.03); display: flex; flex-direction: column; }
+  @media (max-width: 900px) { #stage { padding: 0; } #pitch { display: none; } #app { width: 100%; height: 100dvh; border-radius: 0; box-shadow: none; } }
+  /* top bar */
+  .top { display: flex; align-items: center; gap: 10px; padding: calc(14px + env(safe-area-inset-top)) 16px 10px; }
+  .brand { display: flex; align-items: center; gap: 8px; font: 800 20px 'Plus Jakarta Sans'; letter-spacing: -.03em; }
+  .brand img { width: 30px; height: 30px; border-radius: 9px; }
+  .seg { margin-left: auto; display: flex; padding: 3px; border-radius: 999px; background: #18181c; border: 1px solid var(--line); }
+  .seg button { padding: 6px 12px; border-radius: 999px; font: 700 12px 'Plus Jakarta Sans'; color: var(--faint); }
+  .seg button.on { background: #26262c; color: var(--ink); }
+  .seg button.on.live { background: var(--ape); color: #04140b; }
+  .wal { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); font: 700 12px 'Plus Jakarta Sans'; background: #18181c; }
+  .bal { font: 700 12px 'JetBrains Mono'; color: var(--dim); padding: 0 4px; }
+  /* views */
+  .view { position: absolute; inset: 0; top: 0; display: none; flex-direction: column; }
+  .view.on { display: flex; }
+  #views { position: relative; flex: 1; }
+  /* the deck */
+  #deck { position: relative; flex: 1; margin: 4px 14px 0; }
+  .cardx { position: absolute; inset: 0; border-radius: 26px; overflow: hidden; background: var(--card); box-shadow: 0 18px 50px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06); touch-action: none; user-select: none; will-change: transform; }
+  .cardx.under { transform: scale(.94) translateY(14px); opacity: .7; transition: transform .25s, opacity .25s; }
+  .cardx .img { position: absolute; inset: 0; background: #1b1b20 center/cover no-repeat; }
+  .cardx .img.ph { display: grid; place-items: center; font: 800 72px 'Plus Jakarta Sans'; letter-spacing: -.04em; color: rgba(255,255,255,.85); }
+  .cardx .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.35) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 40%, rgba(8,8,10,.86) 66%, #08080a 100%); }
+  .cardx .age { position: absolute; top: 14px; left: 14px; padding: 6px 10px; border-radius: 999px; background: rgba(0,0,0,.55); backdrop-filter: blur(10px); font: 700 12px 'JetBrains Mono'; }
+  .cardx .age i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--ape); margin-right: 6px; box-shadow: 0 0 8px var(--ape); }
+  .cardx .infoB { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border-radius: 50%; background: rgba(0,0,0,.55); backdrop-filter: blur(10px); display: grid; place-items: center; }
+  .cardx .body { position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 18px 16px; }
+  .cardx .sym { font: 800 34px 'Plus Jakarta Sans'; letter-spacing: -.035em; line-height: 1.05; }
+  .cardx .nm { margin-top: 2px; color: var(--dim); font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cardx .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+  .cardx .stats div { padding: 9px 10px; border-radius: 12px; background: rgba(255,255,255,.06); }
+  .cardx .stats span { display: block; font: 700 10px 'Plus Jakarta Sans'; letter-spacing: .1em; color: var(--faint); }
+  .cardx .stats b { display: block; margin-top: 2px; font: 700 16px 'JetBrains Mono'; }
+  .cardx .curve { margin-top: 12px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.08); overflow: hidden; }
+  .cardx .curve i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #2bbf73, var(--ape)); transition: width .6s ease; }
+  .cardx .curveL { display: flex; justify-content: space-between; margin-top: 6px; font: 600 11.5px 'JetBrains Mono'; color: var(--faint); }
+  .flags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; min-height: 26px; }
+  .flag { padding: 5px 9px; border-radius: 8px; font: 700 11px 'Plus Jakarta Sans'; letter-spacing: .04em; }
+  .flag.r { background: rgba(255,77,109,.16); color: #ff7b93; }
+  .flag.a { background: rgba(255,191,71,.15); color: var(--amber); }
+  .flag.g { background: rgba(63,224,142,.14); color: var(--ape); }
+  .flag.n { background: rgba(255,255,255,.07); color: var(--dim); }
+  .stamp { position: absolute; top: 46px; padding: 6px 16px; border: 4px solid; border-radius: 12px; font: 800 40px 'Plus Jakarta Sans'; letter-spacing: .04em; opacity: 0; pointer-events: none; }
+  .stamp.ape { left: 22px; color: var(--ape); border-color: var(--ape); transform: rotate(-14deg); }
+  .stamp.pass { right: 22px; color: var(--pass); border-color: var(--pass); transform: rotate(14deg); }
+  .empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--dim); padding: 30px; }
+  .empty .pulse { width: 90px; height: 90px; border-radius: 50%; margin: 0 auto 18px; background: radial-gradient(circle, rgba(63,224,142,.35), transparent 70%); animation: pz 1.6s infinite; }
+  @keyframes pz { 50% { transform: scale(1.25); opacity: .5; } }
+  /* action buttons */
+  .acts { display: flex; justify-content: center; align-items: center; gap: 22px; padding: 16px 0 12px; }
+  .act { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: #17171b; box-shadow: 0 8px 24px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.07); transition: transform .12s; }
+  .act:active { transform: scale(.9); }
+  .act.sm { width: 48px; height: 48px; }
+  .act svg { width: 28px; height: 28px; }
+  .act.sm svg { width: 20px; height: 20px; }
+  .act.apeB { width: 76px; height: 76px; background: linear-gradient(160deg, #46e996, #22b866); box-shadow: 0 10px 30px rgba(63,224,142,.35); }
+  .act.apeB svg { width: 34px; height: 34px; }
+  .amt { text-align: center; font: 700 11px 'JetBrains Mono'; color: var(--faint); margin-top: -4px; padding-bottom: 6px; }
+  /* bottom nav */
+  .nav { display: flex; border-top: 1px solid var(--line); padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); background: #0d0d10; }
+  .nav button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font: 700 11px 'Plus Jakarta Sans'; color: var(--faint); }
+  .nav button.on { color: var(--ink); }
+  .nav svg { width: 22px; height: 22px; }
+  .nav .dot { position: relative; }
+  .nav .dot b { position: absolute; top: -4px; right: -10px; min-width: 16px; height: 16px; border-radius: 8px; background: var(--ape); color: #04140b; font: 800 10px 'JetBrains Mono'; display: grid; place-items: center; padding: 0 4px; }
+  /* matches + settings */
+  .pane { flex: 1; overflow-y: auto; padding: 6px 16px 20px; }
+  .pane h2 { margin: 6px 0 14px; font: 800 26px 'Plus Jakarta Sans'; letter-spacing: -.03em; }
+  .sum { display: flex; gap: 10px; margin-bottom: 14px; }
+  .sum div { flex: 1; padding: 12px; border-radius: 14px; background: #141417; border: 1px solid var(--line); }
+  .sum span { display: block; font: 700 10px 'Plus Jakarta Sans'; letter-spacing: .1em; color: var(--faint); }
+  .sum b { font: 700 18px 'JetBrains Mono'; }
+  .pos { display: grid; grid-template-columns: 48px 1fr auto; gap: 12px; align-items: center; padding: 12px; border-radius: 16px; background: #141417; border: 1px solid var(--line); margin-bottom: 10px; }
+  .pos .pi { width: 48px; height: 48px; border-radius: 12px; background: #222 center/cover; }
+  .pos .ps { font: 800 16px 'Plus Jakarta Sans'; }
+  .pos .pv { font: 600 12.5px 'JetBrains Mono'; color: var(--dim); }
+  .pos .pr { text-align: right; }
+  .pos .pr b { display: block; font: 700 15px 'JetBrains Mono'; }
+  .sellB { margin-top: 6px; display: flex; gap: 6px; justify-content: flex-end; }
+  .sellB button { padding: 5px 10px; border-radius: 8px; background: rgba(255,77,109,.14); color: #ff7b93; font: 700 11.5px 'Plus Jakarta Sans'; }
+  .up { color: var(--ape); } .dn { color: var(--pass); }
+  .set { padding: 14px; border-radius: 16px; background: #141417; border: 1px solid var(--line); margin-bottom: 10px; }
+  .set .l { font: 700 13.5px 'Plus Jakarta Sans'; margin-bottom: 10px; display: flex; justify-content: space-between; }
+  .set .l span { color: var(--faint); font-weight: 600; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips button { padding: 8px 12px; border-radius: 10px; background: #1d1d22; font: 700 13px 'JetBrains Mono'; color: var(--dim); }
+  .chips button.on { background: var(--ape); color: #04140b; }
+  .tog { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; color: var(--dim); }
+  .tog input { width: 42px; height: 24px; appearance: none; border-radius: 12px; background: #2a2a30; position: relative; cursor: pointer; transition: .2s; }
+  .tog input::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: .2s; }
+  .tog input:checked { background: var(--ape); } .tog input:checked::after { left: 21px; }
+  .note { color: var(--faint); font-size: 12.5px; margin-top: 8px; }
+  /* sheets + overlays */
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 82%; overflow-y: auto; background: #121215; border-radius: 26px 26px 0 0; box-shadow: 0 -20px 60px rgba(0,0,0,.6); padding: 10px 18px calc(20px + env(safe-area-inset-bottom)); transform: translateY(105%); transition: transform .32s cubic-bezier(.2,.9,.25,1); z-index: 20; }
+  .sheet.on { transform: none; }
+  .sheet .grab { width: 40px; height: 5px; border-radius: 3px; background: #333; margin: 0 auto 14px; }
+  .sheet h3 { margin: 0 0 6px; font: 800 24px 'Plus Jakarta Sans'; letter-spacing: -.03em; }
+  .sheet .d { color: var(--dim); margin: 8px 0 14px; white-space: pre-wrap; }
+  .links { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .links a { padding: 8px 12px; border-radius: 10px; background: #1d1d22; font: 700 13px 'Plus Jakarta Sans'; }
+  .devl { font: 500 13px 'JetBrains Mono'; color: var(--dim); }
+  .devl div { display: flex; justify-content: space-between; padding: 7px 0; border-top: 1px solid var(--line); }
+  .scrim { position: absolute; inset: 0; background: rgba(0,0,0,.5); opacity: 0; pointer-events: none; transition: opacity .3s; z-index: 19; }
+  .scrim.on { opacity: 1; pointer-events: auto; }
+  #match { position: absolute; inset: 0; z-index: 30; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: radial-gradient(500px 500px at 50% 40%, rgba(63,224,142,.35), rgba(5,5,6,.94) 70%); backdrop-filter: blur(8px); padding: 30px; }
+  #match.on { display: flex; animation: fi .3s ease; }
+  @keyframes fi { from { opacity: 0; } }
+  #match .t { font: 800 50px/1 'Plus Jakarta Sans'; letter-spacing: -.045em; font-style: italic; background: linear-gradient(90deg, #7dffb4, #3fe08e, #1fd1a5); -webkit-background-clip: text; color: transparent; animation: pop .5s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes pop { from { transform: scale(.4); opacity: 0; } }
+  #match .pair { display: flex; align-items: center; margin: 30px 0 22px; }
+  #match .pair div { width: 118px; height: 118px; border-radius: 50%; background: #222 center/cover; border: 4px solid #0b0b0d; box-shadow: 0 0 0 3px var(--ape); }
+  #match .pair div:first-child { transform: rotate(-8deg) translateX(14px); } #match .pair div:last-child { transform: rotate(8deg) translateX(-14px); }
+  #match p { color: var(--dim); margin: 0 0 26px; }
+  #match p b { color: var(--ink); }
+  #match .mb { width: 100%; max-width: 300px; padding: 15px; border-radius: 999px; font: 800 15px 'Plus Jakarta Sans'; margin-bottom: 10px; }
+  #match .mb.p { background: var(--ape); color: #04140b; } #match .mb.s { border: 1px solid rgba(255,255,255,.2); }
+  #toast { position: absolute; left: 16px; right: 16px; top: 12px; z-index: 40; padding: 12px 14px; border-radius: 14px; background: #1f1f24; box-shadow: 0 10px 30px rgba(0,0,0,.5); font-size: 13.5px; transform: translateY(-12px); opacity: 0; visibility: hidden; transition: transform .3s, opacity .3s, visibility .3s; }
+  #toast.on { transform: none; opacity: 1; visibility: visible; }
+  #toast.err { background: #3a1820; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="pitch">
+    <div class="lg"><img src="brand/icon.png" alt="">pumpmatch</div>
+    <h1>Swipe the trenches.<br><em>Ape</em> what you like.</h1>
+    <p>Every new pump.fun launch, one card at a time, live from the chain. Right to ape, left to pass.</p>
+    <div class="pts">
+      <div><i>1</i><span><b>Red flags on every card.</b> Dev sold, dev bag, bundled launch block, no socials, and how the dev's last coins ended.</span></div>
+      <div><i>2</i><span><b>Paper mode first.</b> 10 paper SOL to practise with. Real mode uses your own wallet; every trade is signed by you.</span></div>
+      <div><i>3</i><span><b>Your matches.</b> Every ape lands in Matches with live P&amp;L and one-tap sells.</span></div>
+    </div>
+    <div class="ca" id="caBox"><b id="caT"></b><span id="caV"></span><button id="caCopy" style="color:var(--ape);font-weight:700">copy</button></div>
+  </div>
+
+  <div id="app">
+    <div class="top">
+      <div class="brand"><img src="brand/icon.png" alt="">pumpmatch</div>
+      <div class="seg" id="mode"><button data-m="paper">Paper</button><button data-m="live">Live</button></div>
+      <button class="wal" id="walBtn">Connect</button>
+    </div>
+    <div id="views">
+      <div class="view on" id="vSwipe">
+        <div id="deck"><div class="empty" id="empty"><div><div class="pulse"></div><b style="color:var(--ink)">Finding fresh launches…</b><br>Cards appear as coins get their first real buyers.</div></div></div>
+        <div class="acts">
+          <button class="act" id="passB" aria-label="Pass"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="#ff4d6d" stroke-width="3" stroke-linecap="round"/></svg></button>
+          <button class="act sm" id="infoB" aria-label="Details"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#a1a1aa" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" stroke="#a1a1aa" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+          <button class="act apeB" id="apeB" aria-label="Ape"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z" fill="#04140b"/></svg></button>
+        </div>
+        <div class="amt" id="amtL"></div>
+      </div>
+      <div class="view" id="vMatches"><div class="pane"><h2>Matches</h2><div class="sum" id="sum"></div><div id="posList"></div></div></div>
+      <div class="view" id="vSettings"><div class="pane"><h2>Settings</h2><div id="setList"></div></div></div>
+      <div class="scrim" id="scrim"></div>
+      <div class="sheet" id="sheet"></div>
+      <div id="match"></div>
+      <div id="toast"></div>
+    </div>
+    <div class="nav">
+      <button class="on" data-v="vSwipe"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 3.5 7 2.5M15 3.5l2-1" stroke="currentColor" stroke-width="0"/></svg>Swipe</button>
+      <button data-v="vMatches"><span class="dot"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z" fill="none" stroke="currentColor" stroke-width="2"/></svg><b id="mCount" style="display:none"></b></span>Matches</button>
+      <button data-v="vSettings"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/></svg>Settings</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import P from './project.config.js'
+const $ = (id) => document.getElementById(id)
+const Q = new URLSearchParams(location.search)
+const RELAY = Q.get('relay')
+const api = (path, q = '') => (RELAY ? `${RELAY}/v1/${path}?${q}` : `/api/r?path=${path}&${q}`)
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+const usd = (v) => (v >= 1e6 ? '$' + (v / 1e6).toFixed(2) + 'M' : v >= 1e3 ? '$' + (v / 1e3).toFixed(1) + 'K' : '$' + v.toFixed(v < 10 ? 2 : 0))
+const ago = (t) => { const s = Math.max(0, Math.round((Date.now() - t) / 1000)); return s < 60 ? s + 's' : s < 3600 ? Math.round(s / 60) + 'm' : (s / 3600).toFixed(1) + 'h' }
+const store = { get: (k, d) => { try { return JSON.parse(localStorage.getItem('pm_' + k)) ?? d } catch { return d } }, set: (k, v) => { try { localStorage.setItem('pm_' + k, JSON.stringify(v)) } catch {} } }
+if (P.mint) { $('caT').textContent = '$' + P.ticker; $('caV').textContent = P.mint.slice(0, 5) + '…' + P.mint.slice(-5); $('caBox').classList.add('on'); $('caCopy').onclick = () => { navigator.clipboard?.writeText(P.mint); $('caCopy').textContent = 'copied' } }
+
+// ---------------------------------------------------------------- settings + state
+const S = Object.assign({ mode: 'paper', amt: 0.05, slip: 15, hideDevSold: true, maxBundle: 15, minBuyers: 3, sort: 'fresh' }, store.get('set', {}))
+const saveS = () => store.set('set', S)
+const paper = Object.assign({ sol: 10, pos: {} }, store.get('paper', {}))
+const live = { pos: store.get('livepos', {}) }
+let sol = 0, wallet = null
+const toast = (msg, err) => { const t = $('toast'); t.textContent = msg; t.className = 'on' + (err ? ' err' : ''); clearTimeout(t._h); t._h = setTimeout(() => (t.className = ''), 3200) }
+
+// ---------------------------------------------------------------- the deck
+const seen = new Set(store.get('seen', []).slice(-500)), queue = new Map(), devInfo = new Map()
+let cards = []   // [top, under]
+async function pull() {
+  try {
+    const j = await (await fetch(api('deck', 'n=80'), { cache: 'no-store' })).json()
+    sol = j.sol || sol
+    for (const c of j.coins) { c.symbol = String(c.symbol || '?').replace(/^\$+/, ''); if (!seen.has(c.mint)) queue.set(c.mint, c); const on = cards.find((x) => x.c.mint === c.mint); if (on) { on.c = c; paintStats(on) } }
+    if (cards.length < 2) fill()
+  } catch {}
+}
+function pass(c) {
+  if (S.hideDevSold && c.devSold) return false
+  if (c.bundlePct > S.maxBundle) return false
+  if (c.buyers < S.minBuyers) return false
+  return true
+}
+function nextCoin() {
+  const list = [...queue.values()].filter(pass)
+  if (S.sort === 'hot') list.sort((a, b) => b.flow5 - a.flow5); else list.sort((a, b) => b.at - a.at)
+  const c = list[0]; if (c) queue.delete(c.mint)
+  return c
+}
+function fill() {
+  while (cards.length < 2) { const c = nextCoin(); if (!c) break; cards.push(makeCard(c)) }
+  cards.forEach((x, i) => { x.el.classList.toggle('under', i > 0); x.el.style.zIndex = 10 - i })
+  $('empty').style.display = cards.length ? 'none' : 'grid'
+  if (cards[0]) loadDev(cards[0])
+}
+const ICON_X = '<svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="9" fill="none" stroke="#fff" stroke-width="2"/><path d="M12 11v6M12 7.5v.5" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>'
+function makeCard(c) {
+  const el = document.createElement('div'); el.className = 'cardx'
+  el.innerHTML = `<div class="img"></div><div class="shade"></div><div class="age mono"><i></i><span class="ag"></span></div><button class="infoB">${ICON_X}</button>
+    <div class="stamp ape">APE</div><div class="stamp pass">PASS</div>
+    <div class="body"><div class="sym"></div><div class="nm"></div><div class="flags"></div>
+      <div class="stats"><div><span>MCAP</span><b class="mc"></b></div><div><span>BUYERS</span><b class="by"></b></div><div><span>NET 5M</span><b class="fl"></b></div></div>
+      <div class="curve"><i></i></div><div class="curveL"><span>bonding curve</span><span class="pg"></span></div></div>`
+  const x = { el, c }
+  const img = el.querySelector('.img')
+  if (c.img) { const im = new Image(); im.onload = () => (img.style.backgroundImage = `url("${c.img}")`); im.onerror = () => placeholder(img, c); im.src = c.img } else placeholder(img, c)
+  el.querySelector('.sym').textContent = '$' + c.symbol
+  el.querySelector('.nm').textContent = c.name
+  el.querySelector('.infoB').onclick = (e) => { e.stopPropagation(); openInfo(x) }
+  paintStats(x); gestures(x)
+  $('deck').appendChild(el)
+  return x
+}
+function placeholder(img, c) {
+  let h = 0; for (const ch of c.mint) h = (h * 31 + ch.charCodeAt(0)) >>> 0
+  img.classList.add('ph'); img.textContent = c.symbol.slice(0, 4).toUpperCase()
+  img.style.background = `linear-gradient(150deg, hsl(${h % 360} 55% 32%), hsl(${(h >> 8) % 360} 60% 14%))`
+}
+function flagsOf(c, dv) {
+  const f = []
+  if (c.devSold) f.push(['r', 'DEV SOLD'])
+  else if (c.devPct >= 8) f.push(['a', `DEV HOLDS ${c.devPct.toFixed(0)}%`])
+  if (c.bundlePct >= 5) f.push(['a', `BUNDLED ${c.bundlePct.toFixed(0)}%`])
+  if (dv) { if (dv.grads > 0) f.push(['g', `DEV GRADUATED ${dv.grads}`]); if (dv.dead >= 3) f.push(['r', `DEV: ${dv.dead} DEAD COINS`]); else if (dv.count <= 1) f.push(['n', 'FIRST LAUNCH']) }
+  if (!c.x && !c.web && !c.tg) f.push(['n', 'NO SOCIALS'])
+  if (c.flow5 >= 2) f.push(['g', `+${c.flow5.toFixed(1)} SOL IN 5M`])
+  if (c.prog >= 60) f.push(['g', 'NEAR GRADUATION'])
+  return f
+}
+function paintStats(x) {
+  const c = x.c, el = x.el
+  el.querySelector('.ag').textContent = ago(c.at) + ' old'
+  el.querySelector('.mc').textContent = sol ? usd(c.mc * sol) : c.mc.toFixed(1) + ' SOL'
+  el.querySelector('.by').textContent = c.buyers
+  const fl = el.querySelector('.fl'); fl.textContent = (c.flow5 >= 0 ? '+' : '') + c.flow5.toFixed(2); fl.className = 'fl ' + (c.flow5 >= 0 ? 'up' : 'dn')
+  el.querySelector('.curve i').style.width = c.prog + '%'
+  el.querySelector('.pg').textContent = c.prog.toFixed(0) + '%'
+  el.querySelector('.flags').innerHTML = flagsOf(c, devInfo.get(c.dev)).slice(0, 4).map(([k, t]) => `<span class="flag ${k}">${t}</span>`).join('')
+}
+async function loadDev(x) {
+  if (devInfo.has(x.c.dev)) return paintStats(x)
+  devInfo.set(x.c.dev, null)
+  try { const d = await (await fetch(api('dev', 'wallet=' + x.c.dev))).json(); if (!d.error) { devInfo.set(x.c.dev, d); for (const y of cards) if (y.c.dev === x.c.dev) paintStats(y) } } catch {}
+}
+setInterval(() => { for (const x of cards) x.el.querySelector('.ag').textContent = ago(x.c.at) + ' old' }, 1000)
+
+// ---------------------------------------------------------------- swiping
+function gestures(x) {
+  const el = x.el; let sx = 0, sy = 0, dx = 0, dy = 0, down = false
+  el.addEventListener('pointerdown', (e) => { if (cards[0] !== x || e.target.closest('.infoB')) return; down = true; sx = e.clientX; sy = e.clientY; el.setPointerCapture(e.pointerId); el.style.transition = 'none' })
+  el.addEventListener('pointermove', (e) => {
+    if (!down) return; dx = e.clientX - sx; dy = e.clientY - sy
+    el.style.transform = `translate(${dx}px, ${dy * .3}px) rotate(${dx / 18}deg)`
+    el.querySelector('.stamp.ape').style.opacity = Math.max(0, Math.min(1, dx / 90))
+    el.querySelector('.stamp.pass').style.opacity = Math.max(0, Math.min(1, -dx / 90))
+  })
+  const up = () => {
+    if (!down) return; down = false
+    if (dx > 110) decide(x, true); else if (dx < -110) decide(x, false)
+    else if (Math.abs(dx) < 6 && Math.abs(dy) < 6) { el.style.transform = ''; openInfo(x) }
+    else { el.style.transition = 'transform .35s cubic-bezier(.2,1.4,.4,1)'; el.style.transform = ''; el.querySelectorAll('.stamp').forEach((s) => (s.style.opacity = 0)) }
+    dx = dy = 0
+  }
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up)
+}
+function decide(x, ape) {
+  if (cards[0] !== x) return
+  navigator.vibrate?.(ape ? 18 : 8)
+  const el = x.el
+  el.querySelector('.stamp.' + (ape ? 'ape' : 'pass')).style.opacity = 1
+  el.style.transition = 'transform .4s ease-in, opacity .4s'
+  el.style.transform = `translate(${ape ? 600 : -600}px, 40px) rotate(${ape ? 30 : -30}deg)`; el.style.opacity = 0
+  setTimeout(() => el.remove(), 420)
+  cards.shift(); seen.add(x.c.mint); store.set('seen', [...seen].slice(-500))
+  fill()
+  if (ape) apeInto(x.c)
+}
+$('passB').onclick = () => cards[0] && decide(cards[0], false)
+$('apeB').onclick = () => cards[0] && decide(cards[0], true)
+$('infoB').onclick = () => cards[0] && openInfo(cards[0])
+addEventListener('keydown', (e) => { if (!$('vSwipe').classList.contains('on') || !cards[0]) return; if (e.key === 'ArrowRight') decide(cards[0], true); if (e.key === 'ArrowLeft') decide(cards[0], false) })
+
+// ---------------------------------------------------------------- trading: paper (curve math) and live (your wallet signs)
+const FEE = 0.0125   // 0.95% pump.fun + 0.30% creator
+const tokOut = (c, s) => { const net = s * (1 - FEE); return c.vTok - (c.vSol * c.vTok) / (c.vSol + net) }
+const solOut = (v, t) => ((v.vSol - (v.vSol * v.vTok) / (v.vTok + t)) * (1 - FEE))
+async function apeInto(c) {
+  if (S.mode === 'paper') {
+    if (paper.sol < S.amt) return toast('Out of paper SOL. Reset it in Settings.', true)
+    const t = tokOut(c, S.amt)
+    if (!(t > 0)) return toast('No live price for this coin yet. Try the next one.', true)
+    const p = paper.pos[c.mint] || { tok: 0, cost: 0, sym: c.symbol, img: c.img, name: c.name, at: Date.now() }
+    p.tok += t; p.cost += S.amt; paper.pos[c.mint] = p; paper.sol -= S.amt; store.set('paper', paper)
+    showMatch(c, `You aped <b>${S.amt} paper SOL</b> into <b>$${esc(c.symbol)}</b>.`)
+  } else {
+    if (!wallet) { toast('Connect a wallet to ape for real, or switch to Paper.', true); return }
+    try {
+      toast(`Sign the ${S.amt} SOL buy in your wallet…`)
+      const sig = await trade('buy', c.mint, S.amt, true)
+      const p = live.pos[c.mint] || { cost: 0, sym: c.symbol, img: c.img, name: c.name, at: Date.now() }
+      p.cost += S.amt; p.sig = sig; live.pos[c.mint] = p; store.set('livepos', live.pos)
+      showMatch(c, `You aped <b>${S.amt} SOL</b> into <b>$${esc(c.symbol)}</b>. <a class="mono" style="color:var(--ape)" href="https://solscan.io/tx/${sig}" target="_blank" rel="noopener">view tx</a>`)
+    } catch (e) { toast(String(e.message || e).slice(0, 140), true) }
+  }
+  countMatches()
+}
+async function trade(action, mint, amount, inSol) {
+  const r = await fetch('https://pumpportal.fun/api/trade-local', { method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ publicKey: wallet.pk, action, mint, amount, denominatedInSol: inSol ? 'true' : 'false', slippage: S.slip, priorityFee: 0.0003, pool: 'auto' }) })
+  if (r.status !== 200) throw new Error('Could not build the trade (' + r.status + '). The coin may have moved; try again.')
+  const { VersionedTransaction } = await import('https://esm.sh/@solana/web3.js@1.98.0?bundle')
+  const tx = VersionedTransaction.deserialize(new Uint8Array(await r.arrayBuffer()))
+  const res = await wallet.p.signAndSendTransaction(tx)
+  return res.signature || res
+}
+function showMatch(c, line) {
+  const m = $('match')
+  m.innerHTML = `<div class="t">It's a match</div><div class="pair"><div style="background-image:url('brand/icon.png')"></div>${c.img ? `<div style="background-image:url('${esc(c.img)}')"></div>` : `<div style="display:grid;place-items:center;font:800 30px 'Plus Jakarta Sans';background:linear-gradient(150deg,#2a6b4b,#10241a)">${esc(c.symbol.slice(0, 3).toUpperCase())}</div>`}</div><p>${line}</p>
+    <button class="mb p" id="mKeep">Keep swiping</button><button class="mb s" id="mOpen">See my matches</button>`
+  m.classList.add('on')
+  $('mKeep').onclick = () => m.classList.remove('on')
+  $('mOpen').onclick = () => { m.classList.remove('on'); go('vMatches') }
+}
+
+// ---------------------------------------------------------------- wallet
+const providers = () => [['Phantom', window.phantom?.solana], ['Solflare', window.solflare], ['Backpack', window.backpack]].filter(([, p]) => p)
+$('walBtn').onclick = async () => {
+  if (wallet) { try { await wallet.p.disconnect?.() } catch {}; wallet = null; paintWallet(); return }
+  const ps = providers()
+  if (!ps.length) return toast('No Solana wallet found. Install Phantom, Solflare or Backpack, or use Paper mode.', true)
+  try { const [name, p] = ps[0]; const r = await p.connect(); const pk = (r?.publicKey || p.publicKey).toString(); wallet = { p, pk, name }; paintWallet(); toast(`${name} connected`) } catch { toast('Wallet connection cancelled.', true) }
+}
+async function walletSol() {
+  if (!wallet) return 0
+  try { const r = await fetch('https://solana-rpc.publicnode.com', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getBalance', params: [wallet.pk] }) }); return ((await r.json()).result?.value || 0) / 1e9 } catch { return 0 }
+}
+async function paintWallet() {
+  $('walBtn').textContent = wallet ? wallet.pk.slice(0, 4) + '…' + wallet.pk.slice(-4) : 'Connect'
+  paintMode()
+}
+function paintMode() {
+  document.querySelectorAll('#mode button').forEach((b) => { b.classList.toggle('on', b.dataset.m === S.mode); b.classList.toggle('live', b.dataset.m === 'live') })
+  $('amtL').textContent = `${S.mode === 'paper' ? 'PAPER' : 'LIVE'} · APE ${S.amt} SOL${S.mode === 'paper' ? ' · ' + paper.sol.toFixed(2) + ' paper SOL left' : ''}`
+}
+document.querySelectorAll('#mode button').forEach((b) => (b.onclick = () => { S.mode = b.dataset.m; saveS(); paintMode(); if (S.mode === 'live' && !wallet) toast('Live mode: connect your wallet. You sign every trade yourself.') }))
+
+// ---------------------------------------------------------------- matches (positions)
+async function priceOf(mint) {
+  try { const r = await fetch(api('coin', 'mint=' + mint)); if (r.ok) { const c = await r.json(); return { vSol: c.vSol, vTok: c.vTok, price: c.price, done: c.done } } } catch {}
+  try { const p = await (await fetch('https://api.dexscreener.com/tokens/v1/solana/' + mint)).json(); const best = (p || []).sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0))[0]; if (best) return { price: +best.priceNative } } catch {}
+  return null
+}
+async function liveBal(mint) {
+  try { const r = await fetch('https://solana-rpc.publicnode.com', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getTokenAccountsByOwner', params: [wallet.pk, { mint }, { encoding: 'jsonParsed' }] }) })
+    return ((await r.json()).result?.value || []).reduce((s, a) => s + (+a.account.data.parsed.info.tokenAmount.uiAmount || 0), 0) } catch { return 0 }
+}
+async function paintMatches() {
+  const isPaper = S.mode === 'paper', book = isPaper ? paper.pos : live.pos, mints = Object.keys(book)
+  let val = 0, cost = 0
+  const rows = await Promise.all(mints.map(async (m) => {
+    const p = book[m], q = await priceOf(m)
+    const tok = isPaper ? p.tok : wallet ? await liveBal(m) : 0
+    let v = q ? (q.vSol && q.vTok && !q.done ? solOut(q, tok) : tok * (q.price || 0) * (1 - FEE)) : 0
+    if (!isFinite(v)) v = 0
+    val += v; cost += p.cost
+    const pnl = v - p.cost, pct = p.cost ? (pnl / p.cost) * 100 : 0
+    return `<div class="pos"><div class="pi" style="background-image:url('${esc(p.img || '')}')"></div><div><div class="ps">$${esc(p.sym)}</div><div class="pv">${p.cost.toFixed(3)} SOL in · ${ago(p.at)} ago</div></div>
+      <div class="pr"><b class="${pnl >= 0 ? 'up' : 'dn'}">${pnl >= 0 ? '+' : ''}${pct.toFixed(0)}%</b><span class="pv">${v.toFixed(3)} SOL</span><div class="sellB"><button data-s="${m}" data-a="50%">Sell 50%</button><button data-s="${m}" data-a="100%">Sell all</button></div></div></div>`
+  }))
+  $('sum').innerHTML = `<div><span>${isPaper ? 'PAPER SOL' : 'MODE'}</span><b>${isPaper ? paper.sol.toFixed(2) : 'Live'}</b></div><div><span>IN COINS</span><b>${val.toFixed(2)}</b></div><div><span>P&amp;L</span><b class="${val - cost >= -0.005 ? 'up' : 'dn'}">${Math.abs(val - cost) < 0.005 ? '0.00' : (val - cost > 0 ? '+' : '') + (val - cost).toFixed(2)}</b></div>`
+  $('posList').innerHTML = rows.join('') || `<div class="note" style="text-align:center;padding:40px 0">No matches yet. Swipe right on a coin you like.</div>`
+  document.querySelectorAll('[data-s]').forEach((b) => (b.onclick = () => sellPos(b.dataset.s, b.dataset.a)))
+}
+async function sellPos(mint, amt) {
+  const frac = amt === '50%' ? .5 : 1
+  if (S.mode === 'paper') {
+    const p = paper.pos[mint], q = await priceOf(mint); if (!p || !q) return toast('No price for this coin right now.', true)
+    const t = p.tok * frac, out = q.vSol && !q.done ? solOut(q, t) : t * q.price * (1 - FEE)
+    paper.sol += out; p.tok -= t; p.cost *= (1 - frac); if (frac === 1) delete paper.pos[mint]; store.set('paper', paper)
+    toast(`Sold for ${out.toFixed(3)} paper SOL.`)
+  } else {
+    if (!wallet) return toast('Connect your wallet to sell.', true)
+    try { toast('Sign the sell in your wallet…'); const sig = await trade('sell', mint, amt, false); if (frac === 1) { delete live.pos[mint] } else live.pos[mint].cost *= .5; store.set('livepos', live.pos); toast('Sold. ' + sig.slice(0, 8) + '…') } catch (e) { return toast(String(e.message || e).slice(0, 140), true) }
+  }
+  countMatches(); paintMatches(); paintMode()
+}
+function countMatches() { const n = Object.keys(S.mode === 'paper' ? paper.pos : live.pos).length; $('mCount').textContent = n; $('mCount').style.display = n ? '' : 'none'; paintMode() }
+
+// ---------------------------------------------------------------- settings
+function paintSettings() {
+  const chip = (k, vals, fmt = (v) => v) => `<div class="chips">${vals.map((v) => `<button data-k="${k}" data-v="${v}" class="${S[k] == v ? 'on' : ''}">${fmt(v)}</button>`).join('')}</div>`
+  $('setList').innerHTML = `
+    <div class="set"><div class="l">Ape amount <span>per right swipe</span></div>${chip('amt', [0.01, 0.05, 0.1, 0.25, 0.5], (v) => v + ' SOL')}</div>
+    <div class="set"><div class="l">Deck order</div>${chip('sort', ['fresh', 'hot'], (v) => (v === 'fresh' ? 'Newest first' : 'Most inflow'))}</div>
+    <div class="set"><div class="l">Filters</div>
+      <label class="tog">Hide coins where the dev sold<input type="checkbox" id="fDev" ${S.hideDevSold ? 'checked' : ''}></label>
+      <div class="l" style="margin-top:10px">Max bundled supply <span>${S.maxBundle}%</span></div>${chip('maxBundle', [5, 10, 15, 30, 100], (v) => (v === 100 ? 'any' : v + '%'))}
+      <div class="l" style="margin-top:12px">Min buyers</div>${chip('minBuyers', [3, 5, 10, 25])}</div>
+    <div class="set"><div class="l">Slippage</div>${chip('slip', [5, 10, 15, 25])}</div>
+    <div class="set"><div class="l">Paper wallet <span>${paper.sol.toFixed(2)} SOL</span></div><div class="chips"><button id="resetP">Reset to 10 SOL</button></div>
+      <div class="note">Live trades are built by PumpPortal (0.5% fee) and signed and sent by your own wallet. pumpmatch never holds your keys or funds. Memecoins mostly go to zero; not financial advice.</div></div>`
+  document.querySelectorAll('[data-k]').forEach((b) => (b.onclick = () => { const v = b.dataset.v; S[b.dataset.k] = isNaN(+v) ? v : +v; saveS(); paintSettings(); paintMode() }))
+  $('fDev').onchange = (e) => { S.hideDevSold = e.target.checked; saveS() }
+  $('resetP').onclick = () => { paper.sol = 10; paper.pos = {}; store.set('paper', paper); paintSettings(); countMatches(); toast('Paper wallet reset to 10 SOL.') }
+}
+
+// ---------------------------------------------------------------- the info sheet
+function openInfo(x) {
+  const c = x.c, d = devInfo.get(c.dev)
+  const links = [c.x && ['X', c.x], c.web && ['Website', c.web], c.tg && ['Telegram', c.tg], ['pump.fun', 'https://pump.fun/coin/' + c.mint]].filter(Boolean)
+  $('sheet').innerHTML = `<div class="grab"></div><h3>$${esc(c.symbol)}</h3><div class="nm" style="color:var(--dim)">${esc(c.name)} · ${ago(c.at)} old</div>
+    ${c.desc ? `<div class="d">${esc(c.desc)}</div>` : '<div class="d" style="color:var(--faint)">No description.</div>'}
+    <div class="links">${links.map(([n, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener">${n}</a>`).join('')}</div>
+    <div class="flags" style="margin-bottom:14px">${flagsOf(c, d).map(([k, t]) => `<span class="flag ${k}">${t}</span>`).join('')}</div>
+    <div class="set"><div class="l">The dev <span class="mono">${esc(c.dev.slice(0, 4))}…${esc(c.dev.slice(-4))}</span></div>
+      <div class="devl">bought ${c.devBuy} SOL${c.devSell ? `, sold ${c.devSell} SOL` : ', has not sold'} · holds ${c.devPct.toFixed(1)}%</div>
+      <div class="devl" style="margin-top:8px">${d ? `${d.count} launch${d.count === 1 ? '' : 'es'} in their last ${d.scanned} transactions · ${d.grads} graduated · ${d.dead} dead` + d.launches.slice(0, 6).map((l) => `<div><span>$${esc(l.symbol)} · ${ago(l.t)} ago</span><span class="${l.grad ? 'up' : l.dead ? 'dn' : ''}">${l.grad ? 'graduated' : l.dead ? 'dead' : l.mcUsd ? usd(l.mcUsd) : 'live'}</span></div>`).join('') : 'checking their history…'}</div></div>
+    <div class="set"><div class="l">Launch block</div><div class="devl">${c.bundle ? `${c.bundle} other wallet${c.bundle === 1 ? '' : 's'} bought in the same block as the launch: ${c.bundlePct.toFixed(1)}% of supply` : 'No other wallets bought in the launch block.'}</div></div>`
+  $('sheet').classList.add('on'); $('scrim').classList.add('on')
+}
+$('scrim').onclick = () => { $('sheet').classList.remove('on'); $('scrim').classList.remove('on') }
+
+// ---------------------------------------------------------------- navigation
+function go(v) {
+  document.querySelectorAll('.view').forEach((x) => x.classList.toggle('on', x.id === v))
+  document.querySelectorAll('.nav button').forEach((b) => b.classList.toggle('on', b.dataset.v === v))
+  if (v === 'vMatches') paintMatches(); if (v === 'vSettings') paintSettings()
+}
+document.querySelectorAll('.nav button').forEach((b) => (b.onclick = () => go(b.dataset.v)))
+setInterval(() => { if ($('vMatches').classList.contains('on')) paintMatches() }, 5000)
+
+paintMode(); countMatches(); pull(); setInterval(pull, 3000)
+</script>
+</body>
+</html>
