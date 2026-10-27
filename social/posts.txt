@@ -1,0 +1,74 @@
+pumpmatch ($MATCH): X posts. Each main post is under 280 characters. Links go in the first reply.
+(If we rename, swap the name and ticker. Nothing else changes.)
+
+PUMP.FUN DESCRIPTION: Tinder for pump.fun. Every new launch is a card: swipe right to ape, left to pass. Dev sold, bundles and dead-coin devs flagged on every card.
+BIO: Swipe the trenches. Every new pump.fun launch, one card at a time. Right to ape, left to pass. Red flags on every card. $MATCH
+
+--- 1. LAUNCH (pin it, attach the 28 s film) ---
+pump.fun used to be fun. then it became 400 tabs and a prayer.
+
+so we made it a swipe.
+
+every new launch is a card. right to ape, left to pass. dev sold, bundled, dead-coin devs: flagged before you touch it.
+
+$MATCH
+  reply 1: [site]
+  reply 2: CA: [CA]
+
+--- 2. THE RED FLAG POST (screenshot of the GENNY card) ---
+this coin had 84 buyers and +15 SOL in 5 minutes.
+
+looked hot.
+
+the card said: DEV SOLD. and the dev has launched 15 coins. 14 are dead.
+
+swipe left.
+
+$MATCH
+
+--- 3. HOW IT WORKS ---
+how pumpmatch works:
+
+swipe right = ape
+swipe left = pass
+tap = the dev's full history
+
+paper mode with 10 SOL to practise
+live mode with your own wallet, you sign every trade
+
+every match tracked with live P&L
+
+$MATCH
+
+--- 4. THE MATCH ---
+it's a match.
+
+(you and a coin that launched 40 seconds ago)
+
+$MATCH
+
+--- 5. TRUST ---
+pumpmatch never holds your keys or your SOL.
+
+trades are built, then signed and sent by your own wallet. paper mode needs no wallet at all.
+
+the flags come straight from pump.fun's own on-chain events.
+
+$MATCH
+
+--- 6. SHORT ---
+dating apps for people who date memecoins.
+
+$MATCH
+
+--- 7. SHORT 2 ---
+swipe left on the dev who rugged 14 times.
+
+$MATCH
+
+--- 8. FUN AGAIN (quote any "make memecoins fun again" / pump.fun drama post) ---
+memecoins were supposed to be fun.
+
+we made the trenches a swipe.
+
+$MATCH
